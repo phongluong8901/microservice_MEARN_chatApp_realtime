@@ -30,6 +30,7 @@ npm i express dotenv mongoose nodemailer amqplib
 npm i -D @types/express @types/dotenv @types/mongoose @types/amqplib @types/nodemailer
 
 npm i -D concurrently
+npm install -D tsx
 
 -- cd proj_1/backend/chat
 npm i express dotenv mongoose
@@ -37,8 +38,11 @@ npm i express dotenv mongoose
 4. --- run
 -- cd proj_1/backend/mail
 tsc
+npm run dev
 
--- cd proj_1/backend/mail
+-- cd proj_1/backend/user
+tsc
+npm run dev
 
 -- cd proj_1/backend/chat
 
