@@ -42,6 +42,9 @@ npm install -D tsx
 npm i express dotenv mongoose jsonwebtoken axios
 npm i -D @types/express @types/dotenv @types/mongoose @types/jsonwebtoken 
 
+npm i cloudinary multer multer-storage-cloudinary
+npm i -D @types/multer
+
 npm install -D tsx
 
 4. --- run
@@ -73,3 +76,5 @@ https://console.upstash.com/redis?teamid=0
 http://localhost:15672/#/
 - google app password
 https://myaccount.google.com/apppasswords
+- cloudinary
+https://console.cloudinary.com/app/c-772f9c0dead98ae314d09274664e33/settings/billing/plans

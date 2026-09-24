@@ -6,7 +6,7 @@ export interface IChat extends Document {
         text: string;
         sender: string;
     };
-    createAt: Date;
+    createdAt: Date;
     updatedAt: Date;
 }
 
@@ -23,7 +23,7 @@ const schema: Schema<IChat> = new Schema({
     },
 },
     {
-        timestamps: true,
+        timestamps: true, // Tự động sinh ra 2 trường createdAt (thời điểm tạo) và updatedAt (thời điểm cập nhật gần nhất)
     }
 );
 
