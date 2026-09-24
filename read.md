@@ -47,6 +47,17 @@ npm i -D @types/multer
 
 npm install -D tsx
 
+--- Frontend nextjs
+-- cd proj_1/frontend
+npx create-next-app@latest .
+yes - yes - yes
+
+npm i js-cookie
+
+npm i lucide-react @types/js-cookie axios
+npm i react-hot-toast
+
+
 4. --- run
 -- cd proj_1/backend/mail
 tsc
@@ -58,6 +69,9 @@ npm run dev
 
 -- cd proj_1/backend/chat
 tsc
+npm run dev
+
+-- cd proj_1/frontend
 npm run dev
 
 5. --- docker (rabbitMQ)
@@ -78,3 +92,5 @@ http://localhost:15672/#/
 https://myaccount.google.com/apppasswords
 - cloudinary
 https://console.cloudinary.com/app/c-772f9c0dead98ae314d09274664e33/settings/billing/plans
+- frontend
+http://localhost:3000
