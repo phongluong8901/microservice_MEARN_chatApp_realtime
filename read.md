@@ -39,7 +39,10 @@ npm i -D concurrently
 npm install -D tsx
 
 -- cd proj_1/backend/chat
-npm i express dotenv mongoose
+npm i express dotenv mongoose jsonwebtoken axios
+npm i -D @types/express @types/dotenv @types/mongoose @types/jsonwebtoken 
+
+npm install -D tsx
 
 4. --- run
 -- cd proj_1/backend/mail
@@ -51,6 +54,8 @@ tsc
 npm run dev
 
 -- cd proj_1/backend/chat
+tsc
+npm run dev
 
 5. --- docker (rabbitMQ)
 cd proj_1/backend/rabbitMQ
