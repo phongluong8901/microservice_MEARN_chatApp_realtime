@@ -1,39 +1,39 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
+  // Truy cập https://aka.ms/tsconfig để đọc thêm về tệp này
   "compilerOptions": {
-    // File Layout
-    "rootDir": "./src",
-    "outDir": "./dist",
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "target": "es2020",
-    "types": [],
-    // For nodejs:
+    // --- File Layout (Cấu trúc thư mục) ---
+    "rootDir": "./src", // Thư mục chứa mã nguồn TypeScript gốc cần biên dịch.
+    "outDir": "./dist", // Thư mục chứa mã nguồn sau khi đã dịch sang JavaScript.
+    // --- Environment Settings (Cài đặt môi trường) ---
+    // Xem thêm tại https://aka.ms/tsconfig/module
+    "module": "nodenext", // Xác định hệ thống module sử dụng (tuân theo chuẩn module của Node.js hiện đại).
+    "target": "es2020", // Phiên bản JavaScript đích mà TypeScript sẽ dịch mã ra (ES2020).
+    "types": [], // Danh sách các gói kiểu dữ liệu (@types) được tự động nạp (đang để trống).
+    // Ghi chú dành cho Node.js (bị chú thích):
     // "lib": ["esnext"],
     // "types": ["node"],
-    // and npm install -D @types/node
-    // Other Outputs
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    // Stricter Typechecking Options
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-    // Recommended Options
-    "strict": true,
-    "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
+    // và chạy lệnh npm install -D @types/node
+    // --- Other Outputs (Các tệp đầu ra khác) ---
+    "sourceMap": true, // Tạo tệp .js.map để hỗ trợ việc gỡ lỗi (debugging) mã nguồn gốc.
+    "declaration": true, // Tạo tệp định nghĩa kiểu dữ liệu (.d.ts) cho thư viện của bạn.
+    "declarationMap": true, // Tạo bản đồ nguồn cho các tệp định nghĩa (.d.ts.map) giúp nhảy đến mã nguồn khi dùng 'Go to Definition'.
+    // --- Stricter Typechecking Options (Kiểm tra kiểu nghiêm ngặt hơn) ---
+    "noUncheckedIndexedAccess": true, // Buộc kiểm tra giá trị undefined khi truy cập mảng/đối tượng qua chỉ mục.
+    "exactOptionalPropertyTypes": true, // Phân biệt rõ giữa thuộc tính tùy chọn có giá trị undefined và việc không có thuộc tính đó.
+    // Các tùy chọn về phong cách mã (đang bị chú thích):
+    // "noImplicitReturns": true,      // Bắt buộc mọi hàm phải có lệnh return ở tất cả các nhánh.
+    // "noImplicitOverride": true,     // Bắt buộc dùng từ khóa 'override' khi ghi đè phương thức của lớp cha.
+    // "noUnusedLocals": true,         // Báo lỗi nếu có biến cục bộ khai báo nhưng không dùng đến.
+    // "noUnusedParameters": true,     // Báo lỗi nếu có tham số hàm không được sử dụng.
+    // "noFallthroughCasesInSwitch": true, // Chống quên lệnh 'break' trong câu lệnh switch-case.
+    // "noPropertyAccessFromIndexSignature": true, // Buộc dùng cú pháp ngoặc vuông [] để truy cập thuộc tính chỉ mục.
+    // --- Recommended Options (Các tùy chọn được khuyến nghị) ---
+    "strict": true, // Bật tất cả các cờ kiểm tra kiểu nghiêm ngặt cơ bản của TypeScript.
+    "jsx": "react-jsx", // Cấu hình cách chuyển đổi mã JSX (dùng kiểu biến đổi JSX mới của React 17+).
+    "verbatimModuleSyntax": true, // Giữ nguyên cú pháp import/export loại bỏ type để tránh nhầm lẫn giữa giá trị và kiểu.
+    "isolatedModules": true, // Đảm bảo mỗi tệp có thể được biên dịch độc lập mà không cần phụ thuộc vào tệp khác.
+    "noUncheckedSideEffectImports": true, // Cảnh báo khi import tệp có hiệu ứng lề nhưng không tồn tại hoặc không an toàn.
+    "moduleDetection": "force", // Buộc mọi tệp không có import/export được coi là một module thay vì script toàn cục.
+    "skipLibCheck": true // Bỏ qua việc kiểm tra kiểu của các tệp định nghĩa bên trong node_modules giúp tăng tốc độ biên dịch.
   }
 }

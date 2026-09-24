@@ -13,11 +13,11 @@ const schema: Schema<IUser> = new Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
+        unique: true,   // Đảm bảo email là duy nhất
     }
 },
     {
-        timestamps: true,
+        timestamps: true, // Tự động thêm hai trường createdAt (thời gian tạo) và updatedAt (thời gian cập nhật).
     }
 );
 
