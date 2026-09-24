@@ -19,9 +19,20 @@ npm install -D tsx
 npm i express dotenv mongoose
 npm i -D @types/express @types/dotenv @types/mongoose nodemon concurrently
 
+npm i redis 
+npm i -D @types/redis
+
+npm i amqplib
+npm i -D @types/amqplib
+
 -- cd proj_1/backend/mail
+npm i express dotenv mongoose nodemailer amqplib
+npm i -D @types/express @types/dotenv @types/mongoose @types/amqplib @types/nodemailer
+
+npm i -D concurrently
 
 -- cd proj_1/backend/chat
+npm i express dotenv mongoose
 
 4. --- run
 -- cd proj_1/backend/mail
@@ -31,6 +42,17 @@ tsc
 
 -- cd proj_1/backend/chat
 
-5. --- docker
+5. --- docker (rabbitMQ)
+cd proj_1/backend/rabbitMQ
+docker compose up -d
+docker compose down
 
 6. --- deploy
+
+7. link
+- mongodb
+https://cloud.mongodb.com/v2/6ab47da5fdff8f8ef12df32b#/overview
+- upstash
+https://console.upstash.com/redis?teamid=0
+- rabbitMQ
+http://localhost:15672/#/
