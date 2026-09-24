@@ -12,6 +12,30 @@ Nhận tin nhắn (Consumer): Cho phép ứng dụng lắng nghe và tiêu thụ
 
 Quản lý luồng tin nhắn: Hỗ trợ các tính năng như xác nhận tin nhắn (ack/nack), thiết lập độ ưu tiên, định tuyến tin nhắn qua routing key, v.v.
 
+2. js-cookie & @types/js-cookie
+js-cookie: Thư viện JavaScript siêu nhẹ giúp bạn đọc, ghi (lưu), và xóa Cookie ở phía trình duyệt (client-side) một cách cực kỳ dễ dàng và gọn gàng, thay vì phải thao tác thủ công với chuỗi document.cookie phức tạp.
+
+@types/js-cookie: Gói TypeScript definitions dành riêng cho js-cookie. Vì bạn đang dùng TypeScript trong dự án Next.js, gói này giúp trình soạn thảo (như VS Code) hiểu được các kiểu dữ liệu, gợi ý code (autocomplete) và tránh lỗi biên dịc
+
+3. axios
+axios: Thư viện phổ biến dùng để gửi HTTP request (GET, POST, PUT, DELETE,...) từ client hoặc server lên backend API.
+
+Ưu điểm chính so với fetch mặc định:
+
+Tự động chuyển đổi dữ liệu gửi đi và nhận về thành JSON.
+
+Hỗ trợ bắt lỗi tốt hơn thông qua error.response.
+
+Có tính năng Interceptors giúp chèn tự động token xác thực (ví dụ lấy token từ js-cookie đính kèm vào header của mọi request) rất tiện lợi.
+
+4. lucide-react
+lucide-react: Bộ thư viện icon hiện đại, đẹp mắt và tối ưu hóa cho React.
+
+Cách dùng: Cung cấp các icon dưới dạng React component (ví dụ như các icon Mail, ArrowRight, Loader2 mà bạn đang dùng trong trang Login). Bạn có thể dễ dàng tùy chỉnh kích thước (size), màu sắc thông qua các class CSS của Tailwind.
+
+5. react-hot-toast
+react-hot-toast: Thư viện dùng để hiển thị các thông báo dạng pop-up (toast notifications) nhỏ gọn, mượt mà và thông minh (ví dụ: thông báo "Đăng nhập thành công!", "Sai mật khẩu!", hoặc "Đang gửi OTP...").
+
 # --- stack
 MERN Stack (MongoDB, Express, React, Node.js)
 
