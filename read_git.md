@@ -9,3 +9,9 @@ git checkout -b p2_create_user_mail_service
 git add .
 git commit -m "change: first"
 git push origin p2_create_user_mail_service
+
+---
+git checkout -b p3_chat_service
+git add .
+git commit -m "change: first"
+git push origin p3_chat_service
