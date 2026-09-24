@@ -25,6 +25,12 @@ npm i -D @types/redis
 npm i amqplib
 npm i -D @types/amqplib
 
+npm i jsonwebtoken
+npm i -D @types/jsonwebtoken
+
+npm i cors
+npm i -D @types/cors
+
 -- cd proj_1/backend/mail
 npm i express dotenv mongoose nodemailer amqplib
 npm i -D @types/express @types/dotenv @types/mongoose @types/amqplib @types/nodemailer
@@ -60,3 +66,5 @@ https://cloud.mongodb.com/v2/6ab47da5fdff8f8ef12df32b#/overview
 https://console.upstash.com/redis?teamid=0
 - rabbitMQ
 http://localhost:15672/#/
+- google app password
+https://myaccount.google.com/apppasswords
