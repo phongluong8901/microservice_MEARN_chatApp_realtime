@@ -12,13 +12,15 @@ const VerifyPage = () => {
     const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
     const [error, setError] = useState<string>("");
     const [resendLoading, setResendLoading] = useState(false);
-    const [timer, setTimer] = useState(60);
-    const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-    const router = useRouter();
+    const [timer, setTimer] = useState(60); // State đếm ngược thời gian (60 giây)
+    const inputRefs = useRef<Array<HTMLInputElement | null>>([]);   // Tạo ref để lưu trữ mảng các ô input OTP, giúp dễ dàng điều khiển focus
+    const router = useRouter(); // Khởi tạo router để chuyển hướng trang
 
+    // Khởi tạo hook đọc các tham số trên URL
     const searchParams = useSearchParams();
-    const email: string = searchParams.get("email") || "";
+    const email: string = searchParams.get("email") || ""; // Lấy email từ tham số URL
 
+    // UseEffect để đếm ngược thời gian mỗi giây
     useEffect(() => {
         if (timer > 0) {
             const interval = setInterval(() => {
@@ -28,28 +30,35 @@ const VerifyPage = () => {
         }
     }, [timer]);
 
+    // Hàm xử lý khi người dùng nhập ký tự vào một ô input OTP
     const handleInputChange = (index: number, value: string): void => {
+        // Nếu người dùng dán hoặc nhập nhiều hơn 1 ký tự thì chặn không xử lý ở đây
         if (value.length > 1) return;
-        const newOtp = [...otp];
-        newOtp[index] = value;
-        setOtp(newOtp);
-        setError("");
+        const newOtp = [...otp];    // Sao chép mảng otp hiện tại
+        newOtp[index] = value;      // Cập nhật giá trị vào đúng vị trí index
+        setOtp(newOtp);             // Set lại state otp
+        setError("");               // Xóa lỗi nếu có
 
+        // Nếu có giá trị được nhập và chưa phải ô cuối cùng thì chuyển sang ô tiếp theo
         if (value && index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
+    // Hàm xử lý sự kiện khi nhấn bàn phím (đặc biệt là phím Backspace để xóa)
     const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLElement>): void => {
+        // Nếu nhấn phím Backspace, ô hiện tại đang trống và không phải là ô đầu tiên thì lùi focus về ô trước đó
         if (e.key === "Backspace" && !otp[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
     };
 
+    // Hàm xử lý sự kiện dán (paste) mã OTP vào ô đầu tiên
     const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>): void => {
-        e.preventDefault();
-        const pastedData = e.clipboardData.getData("text");
-        const digits = pastedData.replace(/\D/g, "").slice(0, 6);
+        e.preventDefault(); // Chặn hành vi dán mặc định của trình duyệt
+        const pastedData = e.clipboardData.getData("text");  // Lấy dữ liệu được dán
+        const digits = pastedData.replace(/\D/g, "").slice(0, 6); // Loại bỏ các ký tự không phải số và giới hạn 6 ký tự
+        // Kiểm tra nếu đủ 6 ký tự thì cập nhật vào state
         if (digits.length === 6) {
             const newOtp = digits.split("");
             setOtp(newOtp);
@@ -57,10 +66,12 @@ const VerifyPage = () => {
         }
     };
 
+    // Hàm xử lý khi người dùng ấn nút submit để xác thực mã OTP
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        const otpString = otp.join("");
+        e.preventDefault(); // Chặn hành vi reload trang mặc định của thẻ form
+        const otpString = otp.join("");   // Kết hợp mảng otp thành chuỗi
 
+        // Kiểm tra xem đã nhập đủ 6 chữ số chưa
         if (otpString.length !== 6) {
             setError("Please Enter all 6 digits");
             return;
@@ -70,12 +81,14 @@ const VerifyPage = () => {
         setLoading(true);
 
         try {
+            // Gửi yêu cầu POST chứa email và mã OTP lên server để xác thực
             const { data } = await axios.post(`${user_service}/api/v1/verify`, {
                 email,
                 otp: otpString,
             });
 
             alert(data.message);
+            // Lưu token xác thực vào cookie trình duyệt, hết hạn sau 15 ngày
             Cookies.set("token", data.token, {
                 expires: 15,
                 secure: false,
@@ -91,16 +104,18 @@ const VerifyPage = () => {
         }
     };
 
+    // Hàm xử lý yêu cầu gửi lại mã OTP mới
     const handleResendOtp = async () => {
-        setResendLoading(true);
+        setResendLoading(true); // Bật trạng thái loading riêng cho nút gửi lại
         setError("");
 
         try {
+            // Gọi API đăng nhập/gửi lại mã OTP dựa trên email hiện tại
             const { data } = await axios.post(`${user_service}/api/v1/login`, {
                 email,
             });
             alert(data.message);
-            setTimer(60);
+            setTimer(60); // Reset lại đồng hồ đếm ngược về 60 giây
         } catch (err: any) {
             setError(err.response?.data?.message || "Failed to resend code.");
         } finally {
@@ -140,6 +155,7 @@ const VerifyPage = () => {
                                 Enter your 6 digit otp here
                             </label>
 
+                            {/* Khu vực chứa 6 ô input nhập OTP */}
                             <div className='flex justify-center space-x-3'>
                                 {
                                     otp.map((digit, index) => (
@@ -160,7 +176,7 @@ const VerifyPage = () => {
                                 }
                             </div>
                         </div>
-
+                        {/* Hiển thị hộp thông báo lỗi nếu biến error có giá trị */}
                         {
                             error && (
                                 <div className='bg-red-900 border border-red-700 rounded-lg p-3'>
@@ -190,7 +206,7 @@ const VerifyPage = () => {
                             }
                         </button>
                     </form>
-
+                    {/* Phần xử lý gửi lại mã OTP (Resend code) */}
                     <div className='mt-5 text-center'>
                         <p className='text-gray-400 text-sm mb-4'>
                             Didn't receive a code?
