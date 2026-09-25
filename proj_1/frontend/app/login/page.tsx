@@ -1,15 +1,19 @@
 "use client" // Khai báo đây là Client Component (chạy trên trình duyệt), cần thiết vì có sử dụng useState và sự kiện tương tác.
-import { user_service } from '@/context/AppContext';
+import Loading from '@/components/Loading';
+import { useAppData, user_service } from '@/context/AppContext';
 import axios from 'axios';
 import { ArrowRight, Loader2, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import React, { useState } from 'react'
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
     // Khai báo state lưu giá trị email người dùng nhập vào
     const [email, setEmail] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
+
+    const { isAuth, loading: userLoading } = useAppData();
 
     // Hàm xử lý sự kiện khi người dùng bấm nút gửi form
     const handleSubmit = async (e: React.FormEvent<HTMLElement>): Promise<void> => {
@@ -23,17 +27,21 @@ const LoginPage = () => {
             });
 
             // Hiển thị thông báo thành công từ server trả về
-            alert(data.message);
+            toast.success(data.message);
             // Chuyển hướng người dùng sang trang nhập mã OTP và truyền kèm email trên URL
             router.push(`/verify?email=${email}`);
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message || "Đã có lỗi xảy ra!";
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             // Luôn tắt trạng thái đang gửi dù thành công hay thất bại
             setLoading(false);
         }
-    }
+    };
+
+    if (userLoading) return <Loading />
+
+    if (isAuth) redirect('/chat');
 
     return (
         <div className='min-h-screen bg-gray-900 flex items-center justify-center p-4'>

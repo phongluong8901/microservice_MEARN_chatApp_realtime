@@ -3,6 +3,7 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import Cookies from "js-cookie";    // Import thư viện quản lý cookie trình duyệt
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
 
 // Định nghĩa các hằng số chứa URL của các microservices
 export const user_service = "http://localhost:5000";
@@ -42,6 +43,14 @@ interface AppContextType {
     isAuth: boolean;
     setUser: React.Dispatch<React.SetStateAction<User | null>>; // Hàm cập nhật state user
     setIsAuth: React.Dispatch<React.SetStateAction<boolean>>;
+    logoutUser: () => Promise<void>;
+    fetchUser: () => Promise<void>;
+    fetchChats: () => Promise<void>;
+    fetchUsers: () => Promise<void>;
+    chats: Chats[] | null;
+    users: User[] | null;
+    setChats: React.Dispatch<React.SetStateAction<Chats[] | null>>;
+    setUsers: React.Dispatch<React.SetStateAction<User[] | null>>;
 }
 
 // Khởi tạo Context với giá trị mặc định là undefined
@@ -63,6 +72,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         try {
             // Lấy token từ cookie
             const token = Cookies.get("token");
+            if (!token) {
+                // Nếu không có token thì dừng luôn và tắt loading
+                setLoading(false);
+                return;
+            }
+
             // Gọi API /me để lấy thông tin user
             const { data } = await axios.get(`${user_service}/api/v1/me`, {
                 headers: {
@@ -73,19 +88,66 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             setIsAuth(true);
         } catch (error) {
             console.log(error);
-            setLoading(false)
+        } finally {
+            // Đảm bảo dù thành công hay lỗi thì trạng thái loading cũng được tắt
+            setLoading(false);
         }
+    };
 
+    async function logoutUser() {
+        Cookies.remove("token");
+        setUser(null);
+        setIsAuth(false);
+        toast.success("User Logged Out");
+    };
+
+    const [users, setUsers] = useState<User[] | null>(null)
+    async function fetchUsers() {
+        const token = Cookies.get("token");
+
+        try {
+            const { data } = await axios.get(`${user_service}/api/v1/user/all`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setUsers(data);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    const [chats, setChats] = useState<Chats[] | null>(null);
+    async function fetchChats() {
+        const token = Cookies.get("token");
+        try {
+            const { data } = await axios.get(`${chat_service}/api/v1/chat/all`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            setChats(data.chats);
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     // useEffect chạy hàm fetchUser một lần duy nhất khi ứng dụng khởi động (mount)
     useEffect(() => {
         fetchUser();
+        fetchChats();
+        fetchUsers();
     }, []);
 
     return (
-        <AppContext.Provider value={{ user, loading, isAuth, setUser, setIsAuth }}>
+        <AppContext.Provider value={{
+            user, loading, isAuth, setUser, setIsAuth,
+            logoutUser, fetchUser, fetchChats, fetchUsers,
+            chats, users, setChats, setUsers
+        }}>
             {children}
+            <Toaster />
         </AppContext.Provider>
     );
 }

@@ -47,6 +47,9 @@ npm i -D @types/multer
 
 npm install -D tsx
 
+npm i cors
+npm i -D @types/cors
+
 --- Frontend nextjs
 -- cd proj_1/frontend
 npx create-next-app@latest .
