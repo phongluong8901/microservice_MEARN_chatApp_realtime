@@ -1,4 +1,5 @@
 "use client" // Khai báo đây là Client Component (chạy trên trình duyệt), cần thiết vì có sử dụng useState và sự kiện tương tác.
+import { user_service } from '@/context/AppContext';
 import axios from 'axios';
 import { ArrowRight, Loader2, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -17,7 +18,7 @@ const LoginPage = () => {
 
         try {
             // Gửi yêu cầu POST lên server để yêu cầu gửi mã OTP về email
-            const { data } = await axios.post(`http://localhost:5000/api/v1/login`, {
+            const { data } = await axios.post(`${user_service}/api/v1/login`, {
                 email,
             });
 
