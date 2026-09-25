@@ -60,6 +60,8 @@ npm i js-cookie
 npm i lucide-react @types/js-cookie axios
 npm i react-hot-toast
 
+npm i moment
+
 
 4. --- run
 -- cd proj_1/backend/mail

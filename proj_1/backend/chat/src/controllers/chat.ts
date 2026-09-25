@@ -55,14 +55,14 @@ export const getAllChats = TryCatch(async (req: AuthenticatedRequest, res) => {
         return;
     }
 
-    // Tìm tất cả các chat mà user này tham gia, sắp xếp theo thời gian cập nhật mới nhất (Đã sửa updateAt -> updatedAt)
-    const chats = await Chat.find({ users: userId }).sort({ updateAt: -1 });
+    // Tìm tất cả các chat mà user này tham gia, sắp xếp theo thời gian cập nhật mới nhất
+    const chats = await Chat.find({ users: userId }).sort({ updatedAt: -1 });
 
     // Lặp qua từng đoạn chat để lấy thông tin chi tiết của người dùng bên kia (gọi sang User Service) và đếm tin nhắn chưa đọc
     const chatWithUserData = await Promise.all(
         chats.map(async (chat) => {
             // Lọc ra ID của người còn lại trong phòng chat
-            const otherUserId = chat.users.find(id => id !== userId);
+            const otherUserId = chat.users.find(id => id.toString() !== userId.toString());
 
             // Đếm số tin nhắn chưa đọc (seen: false) mà người kia gửi cho mình
             const unseenCount = await Messages.countDocuments({
@@ -154,7 +154,7 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
     }
 
     const otherUserId = chat.users.find(
-        (userId) => userId.toString() === senderId.toString()
+        (id) => id.toString() !== senderId.toString()
     );
 
     if (!otherUserId) {
@@ -240,7 +240,7 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
     }
 
     const isUserInChat = chat.users.some(
-        (userId) => userId.toString() === userId.toString()
+        (id) => id.toString() === userId.toString()
     );
 
     if (!isUserInChat) {
@@ -268,13 +268,13 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
         }
     );
 
-    // Lấy toàn bộ danh sách tin nhắn của phòng chat, sắp xếp tin mới nhất lên đầu (-1)
+    // Lấy toàn bộ danh sách tin nhắn của phòng chat, sắp xếp theo thời gian tăng dần (cũ nhất ở trên, mới nhất ở dưới)
     const messages = await Messages.find({
         chatId
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: 1 });
 
     // Tìm ID người dùng còn lại để lấy thông tin hiển thị header khung chat
-    const otherUserId = chat.users.find((id) => id !== userId);
+    const otherUserId = chat.users.find((id) => id.toString() !== userId.toString());
 
     try {
         const { data } = await axios.get(`${process.env.USER_SERVICE}/api/v1/user/${otherUserId}`);

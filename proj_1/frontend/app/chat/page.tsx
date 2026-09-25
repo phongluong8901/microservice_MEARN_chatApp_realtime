@@ -9,13 +9,16 @@ import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
 import axios from 'axios';
 import ChatHeader from '@/components/ChatHeader';
+import ChatMessages from '@/components/ChatMessages';
+import MEssageInput from '@/components/MessageInput';
+import MessageInput from '@/components/MessageInput';
 
 export interface Message {
     _id: string;
     chatId: string;
     sender: string;
     text?: string;
-    imsage?: {
+    image?: {
         url: string,
         publicId: string;
     };
@@ -94,6 +97,64 @@ const ChatApp = () => {
         }
     }
 
+    const handleMessageSend = async (e: any, imageFile?: File | null) => {
+        e.preventDefault();
+
+        if (!message.trim() && !imageFile) return;
+
+        if (!selectedUser) return;
+
+        //socket work
+
+        const token = Cookies.get("token");
+
+        try {
+            const formData = new FormData();
+
+            formData.append("chatId", selectedUser);
+
+            if (message.trim()) {
+                formData.append("text", message);
+            }
+
+            if (imageFile) {
+                formData.append("image", imageFile);
+            }
+
+            const { data } = await axios.post(`${chat_service}/api/v1/message`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
+            });
+
+            setMessages((prev) => {
+                const currentMessages = prev || []
+                const messageExists = currentMessages.some(
+                    (msg) => msg._id === data.message._id
+                );
+
+                if (!messageExists) {
+                    return [...currentMessages, data.message]
+                }
+                return currentMessages;
+            });
+
+            setMessage("");
+            const displayText = imageFile ? " - image" : message
+        } catch (error: any) {
+            toast.error(error.response.data.message)
+        }
+    }
+
+    const handleTyping = (value: string) => {
+        setMessage(value);
+
+        if (!selectedUser) return
+
+        //socket setup
+    }
+
     useEffect(() => {
         if (selectedUser) {
             fetchChat();
@@ -118,7 +179,24 @@ const ChatApp = () => {
                 createChat={createChat}
             />
             <div className='flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10'>
-                <ChatHeader />
+                <ChatHeader
+                    user={user}
+                    setSiderbarOpen={setSiderbarOpen}
+                    isTyping={isTyping}
+                />
+
+                <ChatMessages
+                    selectedUser={selectedUser}
+                    messages={messages}
+                    loggerInUser={loggedInUser}
+                />
+
+                <MessageInput
+                    selectedUser={selectedUser}
+                    message={message}
+                    setMessage={handleTyping}
+                    handleMessageSend={handleMessageSend}
+                />
             </div>
         </div>
     )
