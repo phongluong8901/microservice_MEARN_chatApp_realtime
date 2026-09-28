@@ -27,3 +27,10 @@ git checkout -b p5_implementing_socketIO
 git add .
 git commit -m "change: first"
 git push origin p5_implementing_socketIO
+
+---
+git add .
+git commit -m "save changes"
+git checkout main
+git merge p5_implementing_socketIO
+git push origin main
