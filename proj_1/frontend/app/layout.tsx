@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { SocketProvider } from "@/context/SocketContext";
 
 // Khai báo metadata tĩnh cho trang web (hiển thị trên tab trình duyệt và SEO).
 export const metadata: Metadata = {
@@ -11,11 +12,12 @@ export const metadata: Metadata = {
 // Khai báo RootLayout là component gốc (layout chung) bọc toàn bộ các trang trong ứng dụng Next.js.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning> {/* Thẻ HTML gốc của trang, đặt ngôn ngữ tiếng Anh và tắt cảnh báo lệch mã HTML SSR/Client (hydration warning). */}
+    <html lang="en" suppressHydrationWarning>
       <body>
-        {/* AppProvider là một Context Provider, đóng vai trò quản lý trạng thái toàn cục của ứng dụng (như thông tin người dùng, danh sách chat, trạng thái kết nối WebSocket). */}
         <AppProvider>
-          {children} {/* Render các trang con (ví dụ: trang login, trang ChatApp,...) tương ứng với đường dẫn URL hiện tại. */}
+          <SocketProvider>
+            {children}
+          </SocketProvider>
         </AppProvider>
       </body>
     </html>

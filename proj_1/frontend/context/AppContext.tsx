@@ -14,6 +14,8 @@ export interface User {
     _id: string;
     name: string;
     email: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 // Định nghĩa cấu trúc dữ liệu của Chat

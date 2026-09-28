@@ -50,6 +50,10 @@ npm install -D tsx
 npm i cors
 npm i -D @types/cors
 
+npm i socket.io
+npm i -D @types/socket.io
+
+
 --- Frontend nextjs
 -- cd proj_1/frontend
 npx create-next-app@latest .
@@ -61,6 +65,8 @@ npm i lucide-react @types/js-cookie axios
 npm i react-hot-toast
 
 npm i moment
+
+npm i socket.io-client
 
 
 4. --- run

@@ -12,6 +12,8 @@ import ChatHeader from '@/components/ChatHeader';
 import ChatMessages from '@/components/ChatMessages';
 import MessageInput from '@/components/MessageInput';
 
+import { SocketData } from '@/context/SocketContext';
+
 export interface Message {
     _id: string;
     chatId: string; // ID của cuộc trò chuyện chứa tin nhắn này.
@@ -34,6 +36,8 @@ const ChatApp = () => {
         user: loggedInUser, users, fetchChats, setChats
     } = useAppData();
 
+    const { socket, onlineUsers } = SocketData();
+
     const [selectedUser, setSelectedUser] = useState<string | null>(null);
     const [message, setMessage] = useState("");
     const [siderbarOpen, setSiderbarOpen] = useState(false);
@@ -52,6 +56,75 @@ const ChatApp = () => {
             router.push("/login");
         }
     }, [isAuth, router, loading]);
+
+    // Lắng nghe sự kiện socket "newMessage" và "messageSeen" để cập nhật tin nhắn real-time
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewMessage = (newMessage: Message) => {
+            console.log("Recieved new message: ", newMessage);
+
+            if (selectedUser === newMessage.chatId) {
+                setMessages((prev) => {
+                    const currentMessages = prev || [];
+                    const messageExists = currentMessages.some(
+                        (msg) => msg._id === newMessage._id
+                    );
+
+                    if (!messageExists) {
+                        return [...currentMessages, newMessage];
+                    }
+                    return currentMessages;
+                });
+
+                moveChatToTop(newMessage.chatId, newMessage, false);
+            } else {
+                moveChatToTop(newMessage.chatId, newMessage, true);
+            }
+
+            fetchChats();
+        };
+
+        const handleMessageSeen = (data: any) => {
+            console.log("Message seen by: ", data);
+
+            if (selectedUser === data.chatId) {
+                setMessages((prev) => {
+                    if (!prev) return null;
+                    return prev.map((msg) => {
+                        const msgIdStr = msg._id ? msg._id.toString() : "";
+                        const messageIdsStr = data.messageIds ? data.messageIds.map((id: any) => id.toString()) : null;
+
+                        if (msg.sender === loggedInUser?._id && messageIdsStr && messageIdsStr.includes(msgIdStr)) {
+                            return {
+                                ...msg,
+                                seen: true,
+                                seenAt: new Date().toString()
+                            }
+                        } else if (msg.sender === loggedInUser?._id && !messageIdsStr) {
+                            return {
+                                ...msg,
+                                seen: true,
+                                seenAt: new Date().toString()
+                            }
+                        }
+
+                        return msg;
+                    })
+                })
+            }
+        };
+
+        socket.on("newMessage", handleNewMessage);
+        socket.on("messagesSeen", handleMessageSeen);
+        socket.on("messageSeen", handleMessageSeen);
+
+        return () => {
+            socket.off("newMessage", handleNewMessage);
+            socket.off("messagesSeen", handleMessageSeen);
+            socket.off("messageSeen", handleMessageSeen);
+        };
+    }, [socket, selectedUser, fetchChats, loggedInUser?._id]);
 
     // Hàm xử lý khi người dùng bấm đăng xuất.
     const handleLogout = () => logoutUser();
@@ -77,6 +150,57 @@ const ChatApp = () => {
         }
     }
 
+    const moveChatToTop = (chatId: string, newMessage: any, updateUnseenCount = true) => {
+        setChats((prev) => {
+            if (!prev) return null;
+
+            const updatedChats = [...prev]
+            const chatIndex = updatedChats.findIndex(
+                (chat) => chat.chat._id === chatId
+            );
+
+            if (chatIndex !== -1) {
+                const [moveChat] = updatedChats.splice(chatIndex, 1);
+
+                const updatedChat = {
+                    ...moveChat,
+                    chat: {
+                        ...moveChat.chat,
+                        latestMessage: {
+                            text: newMessage.text,
+                            sender: newMessage.sender,
+                        },
+                        updatedAt: new Date().toString(),
+
+                        unseenCount: updateUnseenCount && newMessage.sender != loggedInUser?._id ? (moveChat.chat.unseenCount || 0) + 1 : moveChat.chat.unseenCount || 0,
+                    }
+                };
+
+                updatedChats.unshift(updatedChat);
+            }
+
+            return updatedChats;
+        });
+    };
+
+    const resetUnseenCount = (chatId: string) => {
+        setChats((prev) => {
+            if (!prev) return null;
+
+            return prev.map((chat) => {
+                if (chat.chat._id === chatId) {
+                    return {
+                        ...chat,
+                        chat: {
+                            ...chat.chat,
+                            unseenCount: 0,
+                        }
+                    }
+                }
+                return chat;
+            })
+        })
+    }
     // Hàm bất đồng bộ gọi API để tạo một cuộc trò chuyện mới với người dùng được chọn.
     async function createChat(u: User) {
         try {
@@ -110,6 +234,15 @@ const ChatApp = () => {
         if (!selectedUser) return; // Nếu chưa chọn người dùng để chat thì dừng hàm.
 
         //socket work
+        if (typingTimeOut) {
+            clearTimeout(typingTimeOut);
+            setTypingTimeOut(null);
+        }
+
+        socket?.emit("stopTyping", {
+            chatId: selectedUser,
+            userId: loggedInUser?._id
+        });
 
         const token = Cookies.get("token");
 
@@ -149,6 +282,15 @@ const ChatApp = () => {
             setMessage(""); // Xóa nội dung tin nhắn đã nhập trong ô input.
 
             const displayText = imageFile ? " - image" : message
+
+            moveChatToTop(
+                selectedUser!,
+                {
+                    text: displayText,
+                    sender: data.sender
+                },
+                false
+            )
         } catch (error: any) {
             toast.error(error.response.data.message)
         }
@@ -158,17 +300,81 @@ const ChatApp = () => {
     const handleTyping = (value: string) => {
         setMessage(value);
 
-        if (!selectedUser) return
+        if (!selectedUser || !socket) return
 
         //socket setup
+        if (value.trim()) {
+            socket.emit("typing", {
+                chatId: selectedUser,
+                userId: loggedInUser?._id
+            });
+        }
+
+        if (typingTimeOut) {
+            clearTimeout(typingTimeOut);
+        }
+
+        const timeout = setTimeout(() => {
+            socket.emit("stopTyping", {
+                chatId: selectedUser,
+                userId: loggedInUser?._id
+            });
+        }, 2000);
+
+        setTypingTimeOut(timeout);
     }
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleUserTyping = (data: any) => {
+            console.log("received user typing", data);
+            if (data.chatId === selectedUser && data.userId !== loggedInUser?._id) {
+                setIsTyping(true);
+            }
+        };
+
+        const handleUserStoppedTyping = (data: any) => {
+            console.log("received user stopped typing", data);
+            if (data.chatId === selectedUser && data.userId !== loggedInUser?._id) {
+                setIsTyping(false);
+            }
+        };
+
+        socket.on("userTyping", handleUserTyping);
+        socket.on("userStoppedTyping", handleUserStoppedTyping);
+
+        return () => {
+            socket.off("userTyping", handleUserTyping);
+            socket.off("userStoppedTyping", handleUserStoppedTyping);
+        };
+
+    }, [socket, selectedUser, setChats, loggedInUser?._id]);
 
     // Hook tự động gọi lại hàm fetchChat mỗi khi người dùng thay đổi đoạn chat được chọn.
     useEffect(() => {
         if (selectedUser) {
             fetchChat();
+            setIsTyping(false);
+
+            resetUnseenCount(selectedUser);
+
+            socket?.emit("joinChat", selectedUser);
+
+            return () => {
+                socket?.emit("leaveChat", selectedUser);
+                setMessages(null);
+            }
         }
-    }, [selectedUser]);
+    }, [selectedUser, socket]);
+
+    useEffect(() => {
+        return () => {
+            if (typingTimeOut) {
+                clearTimeout(typingTimeOut);
+            }
+        }
+    }, [typingTimeOut]);
 
     if (loading) return <Loading />;
 
@@ -186,6 +392,7 @@ const ChatApp = () => {
                 setShowAllUsers={setShowAllUser}
                 handleLogout={handleLogout}
                 createChat={createChat}
+                onlineUsers={onlineUsers}
             />
             <div className='flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10'>
                 {/* Component phần đầu khung chat (hiển thị tên, avatar người đối thoại, trạng thái) */}
@@ -193,6 +400,8 @@ const ChatApp = () => {
                     user={user}
                     setSiderbarOpen={setSiderbarOpen}
                     isTyping={isTyping}
+                    isOnline={user?._id ? onlineUsers.includes(user._id) : false}
+                    onlineUsers={onlineUsers}
                 />
                 {/* Component hiển thị danh sách các tin nhắn trong đoạn chat hiện tại */}
                 <ChatMessages

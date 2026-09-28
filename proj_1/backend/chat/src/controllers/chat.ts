@@ -3,6 +3,7 @@ import TryCatch from "../config/TryCatch.js";
 import type { AuthenticatedRequest } from "../middleware/isAuth.js";
 import { Chat } from "../models/Chat.js";
 import { Messages } from "../models/Messages.js";
+import { getReceiverSocketId, io } from "../config/socket.js";
 
 // 1. TẠO HOẶC LẤY PHÒNG CHAT MỚI (1-1)
 export const createNewChat = TryCatch(async (req: AuthenticatedRequest, res) => {
@@ -165,12 +166,23 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
     }
 
     //socket setup
+    const receiverSocketId = getReceiverSocketId(otherUserId.toString());
+    let isReceiverInChatRoom = false;
+
+    if (receiverSocketId) {
+        const receiverSocket = io.sockets.sockets.get(receiverSocketId);
+
+        if (receiverSocket && receiverSocket.rooms.has(chatId)) {
+            isReceiverInChatRoom = true;
+        }
+    }
+
     // Khởi tạo đối tượng dữ liệu tin nhắn chuẩn bị lưu vào MongoDB
     let messageData: any = {
         chatId: chatId,
         sender: senderId,
-        seen: false,
-        seenAt: undefined,
+        seen: isReceiverInChatRoom,
+        seenAt: isReceiverInChatRoom ? new Date() : undefined,
     };
 
     // Phân loại nếu là gửi ảnh hay gửi chữ
@@ -204,6 +216,27 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
     }, { new: true });
 
     //emit to sockets
+    io.to(chatId).emit("newMessage", savedMessage);
+
+    if (receiverSocketId) {
+        io.to(receiverSocketId).emit("newMessage", savedMessage);
+    }
+
+    const senderSocketId = getReceiverSocketId(senderId.toString());
+    if (senderSocketId) {
+        io.to(senderSocketId).emit("newMessage", savedMessage);
+    }
+
+    if (isReceiverInChatRoom && senderSocketId) {
+        const payload = {
+            chatId: chatId,
+            seenBy: otherUserId,
+            messageIds: [savedMessage._id]
+        };
+        io.to(senderSocketId).emit("messagesSeen", payload);
+        io.to(senderSocketId).emit("messageSeen", payload);
+    }
+
     res.status(201).json({
         message: savedMessage,
         send: senderId
@@ -276,26 +309,44 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
     // Tìm ID người dùng còn lại để lấy thông tin hiển thị header khung chat
     const otherUserId = chat.users.find((id) => id.toString() !== userId.toString());
 
+    if (!otherUserId) {
+        res.json({
+            messages,
+            user: { _id: null, name: "Unknown User" }
+        });
+        return;
+    }
+
+    //socket work: thông báo cho người gửi (otherUserId) rằng người nhận (userId) đã đọc các tin nhắn này
+    if (messagesToMarkSeen.length > 0) {
+        const payload = {
+            chatId: chatId,
+            seenBy: userId,
+            messageIds: messagesToMarkSeen.map(msg => msg._id),
+        };
+
+        const otherUserSocketId = getReceiverSocketId(otherUserId.toString());
+        if (otherUserSocketId) {
+            io.to(otherUserSocketId).emit("messagesSeen", payload);
+            io.to(otherUserSocketId).emit("messageSeen", payload);
+        }
+
+        io.to(chatId).emit("messagesSeen", payload);
+        io.to(chatId).emit("messageSeen", payload);
+    }
+
     try {
         const { data } = await axios.get(`${process.env.USER_SERVICE}/api/v1/user/${otherUserId}`);
 
-        if (!otherUserId) {
-            res.status(403).json({
-                message: "No other user"
-            });
-            return;
-        }
-
-        //socket work
         res.json({
             messages,
             user: data,
         });
-    } catch (error) {
-        console.log(error);
+    } catch (error: any) {
+        console.log("Error fetching user data:", error.message || error);
         res.json({
             messages,
-            user: { _id: otherUserId, name: "Uknown User" }
+            user: { _id: otherUserId, name: "Unknown User" }
         });
     }
 
