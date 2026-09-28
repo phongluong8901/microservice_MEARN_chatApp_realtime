@@ -34,3 +34,9 @@ git commit -m "save changes"
 git checkout main
 git merge p5_implementing_socketIO
 git push origin main
+
+---
+git checkout -b p6_deploy
+git add .
+git commit -m "change: first"
+git push origin p6_deploy
