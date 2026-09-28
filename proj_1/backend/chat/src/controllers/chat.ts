@@ -1,14 +1,14 @@
-import axios from "axios";
-import TryCatch from "../config/TryCatch.js";
-import type { AuthenticatedRequest } from "../middleware/isAuth.js";
-import { Chat } from "../models/Chat.js";
-import { Messages } from "../models/Messages.js";
-import { getReceiverSocketId, io } from "../config/socket.js";
+import axios from "axios"; // Nhập thư viện axios để thực hiện các HTTP request gọi sang service khác (User Service)
+import TryCatch from "../config/TryCatch.js"; // Nhập wrapper hàm xử lý lỗi tự động cho Express controller
+import type { AuthenticatedRequest } from "../middleware/isAuth.js"; // Nhập kiểu dữ liệu request đã được xác thực (có chứa thông tin user)
+import { Chat } from "../models/Chat.js"; // Nhập Mongoose Model quản lý thông tin phòng chat
+import { Messages } from "../models/Messages.js"; // Nhập Mongoose Model quản lý thông tin tin nhắn
+import { getReceiverSocketId, io } from "../config/socket.js"; // Nhập hàm lấy socketId và đối tượng io từ cấu hình socket
 
 // 1. TẠO HOẶC LẤY PHÒNG CHAT MỚI (1-1)
 export const createNewChat = TryCatch(async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?._id;
-    const { otherUserId } = req.body;
+    const userId = req.user?._id; // Lấy ID của người dùng đang thực hiện request từ token xác thực
+    const { otherUserId } = req.body; // Lấy ID của người mà user muốn trò chuyện cùng từ body request
 
     // Kiểm tra xem đã truyền ID của người cần chat cùng chưa
     if (!otherUserId) {
@@ -21,8 +21,7 @@ export const createNewChat = TryCatch(async (req: AuthenticatedRequest, res) => 
     // Tìm xem đã tồn tại đoạn chat giữa 2 người này từ trước chưa ($all và $size: 2 đảm bảo đúng 2 người)
     const existingChat = await Chat.findOne({
         users: {
-            $all: [userId, otherUserId],
-            $size: 2
+            $all: [userId, otherUserId], $size: 2
         }
     });
 
@@ -48,7 +47,7 @@ export const createNewChat = TryCatch(async (req: AuthenticatedRequest, res) => 
 
 // 2. LẤY TẤT CẢ DANH SÁCH CHẶT CỦA USER
 export const getAllChats = TryCatch(async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?._id;
+    const userId = req.user?._id; // Lấy ID của user hiện tại từ request
     if (!userId) {
         res.status(400).json({
             message: "UserId missing"
@@ -106,8 +105,8 @@ export const getAllChats = TryCatch(async (req: AuthenticatedRequest, res) => {
 
 // 3. GỬI TIN NHẮN (HỖ TRỢ CẢ TEXT VÀ ẢNH)
 export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
-    const senderId = req.user?._id;
-    const { chatId, text } = req.body;
+    const senderId = req.user?._id; // Lấy ID người gửi từ request đã xác thực
+    const { chatId, text } = req.body; // Lấy thông tin phòng chat và nội dung tin nhắn từ body
     const imageFile = req.file; // File ảnh được đính kèm qua Multer middleware
 
     // Kiểm tra tính hợp lệ của dữ liệu đầu vào
@@ -165,7 +164,7 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
         return
     }
 
-    //socket setup
+    //socket setup: Lấy socketId của người nhận để kiểm tra xem họ có đang mở đúng phòng chat này không
     const receiverSocketId = getReceiverSocketId(otherUserId.toString());
     let isReceiverInChatRoom = false;
 
@@ -173,7 +172,7 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
         const receiverSocket = io.sockets.sockets.get(receiverSocketId);
 
         if (receiverSocket && receiverSocket.rooms.has(chatId)) {
-            isReceiverInChatRoom = true;
+            isReceiverInChatRoom = true; // Nếu người nhận đang ở trong phòng chat thì đánh dấu đã xem luôn
         }
     }
 
@@ -215,7 +214,7 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
         updatedAt: new Date(),
     }, { new: true });
 
-    //emit to sockets
+    //emit to sockets: Gửi tin nhắn mới tới phòng chat
     io.to(chatId).emit("newMessage", savedMessage);
 
     if (receiverSocketId) {
@@ -227,6 +226,7 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
         io.to(senderSocketId).emit("newMessage", savedMessage);
     }
 
+    // Nếu người nhận đang ở trong phòng chat, gửi thông báo đã xem (seen) về cho người gửi
     if (isReceiverInChatRoom && senderSocketId) {
         const payload = {
             chatId: chatId,
@@ -246,8 +246,8 @@ export const sendMessage = TryCatch(async (req: AuthenticatedRequest, res) => {
 
 // 4. LẤY TOÀN BỘ TIN NHẮN TRONG MỘT PHÒNG CHAT
 export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res) => {
-    const userId = req.user?._id;
-    const { chatId } = req.params;
+    const userId = req.user?._id; // Lấy ID của user đang yêu cầu xem tin nhắn
+    const { chatId } = req.params; // Lấy chatId từ URL params
 
     if (!userId) {
         res.status(400).json({
@@ -272,6 +272,7 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
         return;
     }
 
+    // Kiểm tra user có thuộc phòng chat này không
     const isUserInChat = chat.users.some(
         (id) => id.toString() === userId.toString()
     );
@@ -283,6 +284,7 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
         return;
     }
 
+    // Tìm các tin nhắn chưa đọc do người khác gửi đến
     const messagesToMarkSeen = await Messages.find({
         chatId: chatId,
         sender: { $ne: userId },
@@ -336,6 +338,7 @@ export const getMessagesByChat = TryCatch(async (req: AuthenticatedRequest, res)
     }
 
     try {
+        // Lấy thông tin user còn lại từ User Service để hiển thị
         const { data } = await axios.get(`${process.env.USER_SERVICE}/api/v1/user/${otherUserId}`);
 
         res.json({

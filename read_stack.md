@@ -109,3 +109,70 @@ Fully Deployed on AWS
 Scalable & Modular Backend
 
 Responsive UI with React.js
+
+# --- workfolow
+## 2. Chi tiết các luồng nghiệp vụ chính (Step-by-Step Workflows)
+A. Luồng Kết Nối & Trạng Thái Online (Connection & Online Status)
+Client khởi động: Khi người dùng mở app, SocketContext kết nối tới Socket.io Server kèm theo userId lên socket.handshake.query.
+
+Server ánh xạ: Socket server nhận userId, lưu vào bộ nhớ tạm userSocketMap[userId] = socket.id và tự động cho socket join vào một room riêng mang tên userId.
+
+Phát sóng Online: Server chạy lệnh io.emit("getOnlineUsers", ...) để gửi danh sách toàn bộ các ID đang online tới tất cả client khác.
+
+B. Luồng Tạo Hoặc Lấy Phòng Chat (Create / Get Chat)
+Client chọn user: Người dùng bấm vào một user từ danh sách để bắt đầu chat (createChat).
+
+Gửi Request: Client gọi HTTP POST /api/v1/chat/new với otherUserId.
+
+Kiểm tra DB: Controller kiểm tra bảng Chat xem đã tồn tại bản ghi nào chứa đủ 2 users ($all và $size: 2) hay chưa.
+
+Nếu có: Trả về chatId cũ.
+
+Nếu chưa: Tạo mới document Chat trong MongoDB và trả về chatId mới.
+
+Client chuyển phòng: Nhận được chatId, client cập nhật selectedUser state và kích hoạt việc Join Room qua socket (socket.emit("joinChat", chatId)).
+
+C. Luồng Gửi & Nhận Tin Nhắn Real-time (Send & Receive Message)
+Nhập & Gửi: Người dùng nhập nội dung hoặc chọn ảnh, bấm gửi (handleMessageSend). Client đóng gói dữ liệu vào FormData và gọi HTTP POST /api/v1/message.
+
+Xử lý phía Server (sendMessage):
+
+Kiểm tra quyền hạn và xác thực người gửi có thuộc phòng chat hay không.
+
+Kiểm tra xem người nhận có đang mở sẵn phòng chat đó hay không (isReceiverInChatRoom).
+
+Tạo object tin nhắn với trạng thái seen (true nếu người nhận đang mở phòng, false nếu chưa đọc) rồi lưu vào collection Messages.
+
+Cập nhật thông tin latestMessage và thời gian updatedAt cho phòng chat đó trong bảng Chat.
+
+Phát sự kiện Socket (emit):
+
+Server gửi sự kiện newMessage đến phòng chat (io.to(chatId).emit(...)).
+
+Gửi riêng đến socket ID của người nhận và người gửi để đồng bộ giao diện nhiều tab/thiết bị.
+
+Cập nhật giao diện Client:
+
+Các client lắng nghe sự kiện newMessage: Thêm tin nhắn mới vào danh sách hiển thị và đẩy cuộc trò chuyện đó lên vị trí đầu tiên trong Sidebar (moveChatToTop).
+
+D. Luồng Đọc Tin Nhắn & Trạng Thái "Đã Xem" (Mark as Seen / Message Seen)
+Mở phòng chat: Khi client chuyển sang một đoạn chat (selectedUser), hàm getMessagesByChat được gọi.
+
+Cập nhật Database: Server tìm tất cả tin nhắn trong phòng do người kia gửi mà có seen: false, sau đó chạy updateMany để chuyển thành seen: true.
+
+Báo về cho người gửi: Server bắn sự kiện messagesSeen / messageSeen qua socket cho người gửi biết rằng tin nhắn của họ đã được đọc.
+
+Cập nhật UI: Client nhận được sự kiện messageSeen sẽ cập nhật trạng thái hiển thị của tin nhắn thành "đã xem".
+
+E. Luồng Hiển Thị Trạng Thái Đang Gõ (Typing Indicator)
+Người dùng gõ phím: Khi người dùng gõ vào ô input (handleTyping), client phát sự kiện typing kèm chatId và userId lên socket server.
+
+Chuyển tiếp sự kiện: Socket server nhận được sẽ gửi ngay sự kiện userTyping tới tất cả các client khác đang đứng trong phòng chat đó (trừ người gửi).
+
+Hết giờ gõ (Debounce):
+
+Client sử dụng setTimeout (2 giây). Nếu người dùng dừng gõ phím quá 2 giây, client sẽ tự động phát sự kiện stopTyping.
+
+Server nhận được sẽ phát tiếp sự kiện userStoppedTyping để ẩn hiệu ứng "đang gõ..." trên màn hình người đối diện.
+
+Nếu bạn cần tối ưu hóa hoặc bổ sung thêm luồn

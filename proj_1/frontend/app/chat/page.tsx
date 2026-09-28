@@ -1,21 +1,21 @@
-"use client"
+"use client" // Khai báo đây là một Client Component chạy trên phía trình duyệt (Next.js App Router)
 
-import ChatSiderbar from '@/components/ChatSiderbar';
-import Loading from '@/components/Loading';
-import { chat_service, useAppData, User } from '@/context/AppContext'
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react'
-import toast from 'react-hot-toast';
-import Cookies from 'js-cookie';
-import axios from 'axios';
-import ChatHeader from '@/components/ChatHeader';
-import ChatMessages from '@/components/ChatMessages';
-import MessageInput from '@/components/MessageInput';
+import ChatSiderbar from '@/components/ChatSiderbar'; // Nhập component thanh sidebar danh sách chat
+import Loading from '@/components/Loading'; // Nhập component hiển thị trạng thái đang tải
+import { chat_service, useAppData, User } from '@/context/AppContext' // Nhập các hàm, context toàn cục của ứng dụng
+import { useRouter } from 'next/navigation'; // Nhập hook điều hướng trang của Next.js
+import React, { useEffect, useState } from 'react' // Nhập React và các hook cơ bản
+import toast from 'react-hot-toast'; // Nhập thư viện hiển thị thông báo toast
+import Cookies from 'js-cookie'; // Nhập thư viện đọc/ghi cookie phía client
+import axios from 'axios'; // Nhập axios để gọi HTTP request
+import ChatHeader from '@/components/ChatHeader'; // Nhập component header khung chat
+import ChatMessages from '@/components/ChatMessages'; // Nhập component danh sách tin nhắn
+import MessageInput from '@/components/MessageInput'; // Nhập component ô nhập tin nhắn
 
-import { SocketData } from '@/context/SocketContext';
+import { SocketData } from '@/context/SocketContext'; // Nhập context quản lý kết nối Socket.io
 
-export interface Message {
-    _id: string;
+export interface Message { // Định nghĩa kiểu dữ liệu cho một đối tượng tin nhắn
+    _id: string; // ID duy nhất của tin nhắn
     chatId: string; // ID của cuộc trò chuyện chứa tin nhắn này.
     sender: string; // ID của người gửi.
     text?: string; // Nội dung tin nhắn (nếu là văn bản).
@@ -26,7 +26,7 @@ export interface Message {
     messageType: "text" | "image"; // Loại tin nhắn (văn bản hoặc hình ảnh).
     seen: boolean; // Trạng thái đã xem.
     seenAt?: string; // Thời gian xem.
-    createdAt: string;
+    createdAt: string; // Thời điểm tạo tin nhắn
 }
 
 // Khai báo component chính quản lý toàn bộ giao diện ứng dụng chat.
@@ -34,23 +34,23 @@ const ChatApp = () => {
     const {
         loading, isAuth, logoutUser, chats,
         user: loggedInUser, users, fetchChats, setChats
-    } = useAppData();
+    } = useAppData(); // Lấy các state và hàm toàn cục từ AppContext
 
-    const { socket, onlineUsers } = SocketData();
+    const { socket, onlineUsers } = SocketData(); // Lấy đối tượng socket và danh sách user đang online từ SocketContext
 
-    const [selectedUser, setSelectedUser] = useState<string | null>(null);
-    const [message, setMessage] = useState("");
-    const [siderbarOpen, setSiderbarOpen] = useState(false);
-    const [messages, setMessages] = useState<Message[] | null>(null);
-    const [user, setUser] = useState<User | null>(null);
-    const [showAllUser, setShowAllUser] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [typingTimeOut, setTypingTimeOut] = useState<NodeJS.Timeout | null>(null);
+    const [selectedUser, setSelectedUser] = useState<string | null>(null); // State lưu chatId của cuộc trò chuyện đang được chọn
+    const [message, setMessage] = useState(""); // State lưu nội dung tin nhắn đang nhập trong ô input
+    const [siderbarOpen, setSiderbarOpen] = useState(false); // State quản lý ẩn/hiện sidebar trên thiết bị di động
+    const [messages, setMessages] = useState<Message[] | null>(null); // State lưu danh sách tin nhắn của cuộc trò chuyện hiện tại
+    const [user, setUser] = useState<User | null>(null); // State lưu thông tin chi tiết của người đối thoại
+    const [showAllUser, setShowAllUser] = useState(false); // State quản lý việc hiển thị danh sách tất cả người dùng để tạo chat mới
+    const [isTyping, setIsTyping] = useState(false); // State kiểm tra xem người đối phương có đang gõ chữ hay không
+    const [typingTimeOut, setTypingTimeOut] = useState<NodeJS.Timeout | null>(null); // State quản lý thời gian chờ (debounce) sự kiện đang gõ
 
     // Khởi tạo router để điều hướng trang.
     const router = useRouter();
 
-    // Hook kiểm tra quyền xác thực người dùng.
+    // Hook kiểm tra quyền xác thực người dùng. Nếu chưa đăng nhập thì đá về trang login.
     useEffect(() => {
         if (!isAuth && !loading) {
             router.push("/login");
@@ -64,6 +64,7 @@ const ChatApp = () => {
         const handleNewMessage = (newMessage: Message) => {
             console.log("Recieved new message: ", newMessage);
 
+            // Nếu tin nhắn mới thuộc về đoạn chat đang mở hiện tại thì đưa vào mảng messages
             if (selectedUser === newMessage.chatId) {
                 setMessages((prev) => {
                     const currentMessages = prev || [];
@@ -77,17 +78,18 @@ const ChatApp = () => {
                     return currentMessages;
                 });
 
-                moveChatToTop(newMessage.chatId, newMessage, false);
+                moveChatToTop(newMessage.chatId, newMessage, false); // Đưa chat lên đầu nhưng không tăng số lượng chưa đọc
             } else {
-                moveChatToTop(newMessage.chatId, newMessage, true);
+                moveChatToTop(newMessage.chatId, newMessage, true); // Đưa chat lên đầu và tăng số lượng tin nhắn chưa đọc
             }
 
-            fetchChats();
+            fetchChats(); // Cập nhật lại danh sách chat tổng quan
         };
 
         const handleMessageSeen = (data: any) => {
             console.log("Message seen by: ", data);
 
+            // Cập nhật trạng thái đã xem cho các tin nhắn khi người nhận đã đọc
             if (selectedUser === data.chatId) {
                 setMessages((prev) => {
                     if (!prev) return null;
@@ -119,6 +121,7 @@ const ChatApp = () => {
         socket.on("messagesSeen", handleMessageSeen);
         socket.on("messageSeen", handleMessageSeen);
 
+        // Cleanup: gỡ bỏ các listener khi component unmount hoặc dependency thay đổi
         return () => {
             socket.off("newMessage", handleNewMessage);
             socket.off("messagesSeen", handleMessageSeen);
@@ -150,6 +153,7 @@ const ChatApp = () => {
         }
     }
 
+    // Hàm di chuyển cuộc trò chuyện có tin nhắn mới lên vị trí đầu tiên trong danh sách sidebar
     const moveChatToTop = (chatId: string, newMessage: any, updateUnseenCount = true) => {
         setChats((prev) => {
             if (!prev) return null;
@@ -183,6 +187,7 @@ const ChatApp = () => {
         });
     };
 
+    // Hàm thiết lập lại số lượng tin nhắn chưa đọc về 0 khi mở phòng chat
     const resetUnseenCount = (chatId: string) => {
         setChats((prev) => {
             if (!prev) return null;
@@ -233,7 +238,7 @@ const ChatApp = () => {
 
         if (!selectedUser) return; // Nếu chưa chọn người dùng để chat thì dừng hàm.
 
-        //socket work
+        // socket work: khi gửi tin nhắn thì hủy timeout đang gõ và báo dừng typing
         if (typingTimeOut) {
             clearTimeout(typingTimeOut);
             setTypingTimeOut(null);
@@ -256,7 +261,7 @@ const ChatApp = () => {
             }
 
             if (imageFile) {
-                formData.append("image", imageFile);
+                formData.append("image", imageFile); // Thêm file ảnh nếu có đính kèm
             }
 
             const { data } = await axios.post(`${chat_service}/api/v1/message`, formData, {
@@ -302,7 +307,7 @@ const ChatApp = () => {
 
         if (!selectedUser || !socket) return
 
-        //socket setup
+        // socket setup: Gửi sự kiện đang gõ (typing) lên socket server
         if (value.trim()) {
             socket.emit("typing", {
                 chatId: selectedUser,
@@ -314,6 +319,7 @@ const ChatApp = () => {
             clearTimeout(typingTimeOut);
         }
 
+        // Sau 2 giây không gõ phím thì tự động gửi sự kiện dừng gõ (stopTyping)
         const timeout = setTimeout(() => {
             socket.emit("stopTyping", {
                 chatId: selectedUser,
@@ -324,6 +330,7 @@ const ChatApp = () => {
         setTypingTimeOut(timeout);
     }
 
+    // Lắng nghe sự kiện socket nhận trạng thái đang gõ từ người khác
     useEffect(() => {
         if (!socket) return;
 
@@ -351,7 +358,7 @@ const ChatApp = () => {
 
     }, [socket, selectedUser, setChats, loggedInUser?._id]);
 
-    // Hook tự động gọi lại hàm fetchChat mỗi khi người dùng thay đổi đoạn chat được chọn.
+    // Hook tự động gọi lại hàm fetchChat và join/leave room mỗi khi người dùng thay đổi đoạn chat được chọn.
     useEffect(() => {
         if (selectedUser) {
             fetchChat();
@@ -359,15 +366,16 @@ const ChatApp = () => {
 
             resetUnseenCount(selectedUser);
 
-            socket?.emit("joinChat", selectedUser);
+            socket?.emit("joinChat", selectedUser); // Yêu cầu socket join vào phòng chat tương ứng
 
             return () => {
-                socket?.emit("leaveChat", selectedUser);
+                socket?.emit("leaveChat", selectedUser); // Rời phòng chat khi chuyển sang chat khác
                 setMessages(null);
             }
         }
     }, [selectedUser, socket]);
 
+    // Dọn dẹp bộ nhớ đếm ngược timeout khi component unmount
     useEffect(() => {
         return () => {
             if (typingTimeOut) {
@@ -376,10 +384,12 @@ const ChatApp = () => {
         }
     }, [typingTimeOut]);
 
+    // Nếu đang tải dữ liệu thì hiển thị component Loading
     if (loading) return <Loading />;
 
     return (
         <div className='min-h-screen flex bg-gray-900 text-white relative overflow-hidden'>
+            {/* Component thanh sidebar hiển thị danh sách các cuộc trò chuyện và người dùng */}
             <ChatSiderbar
                 chats={chats}
                 users={users}
@@ -395,7 +405,7 @@ const ChatApp = () => {
                 onlineUsers={onlineUsers}
             />
             <div className='flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10'>
-                {/* Component phần đầu khung chat (hiển thị tên, avatar người đối thoại, trạng thái) */}
+                {/* Component phần đầu khung chat (hiển thị tên, avatar người đối thoại, trạng thái online/đang gõ) */}
                 <ChatHeader
                     user={user}
                     setSiderbarOpen={setSiderbarOpen}
@@ -409,7 +419,7 @@ const ChatApp = () => {
                     messages={messages}
                     loggerInUser={loggedInUser}
                 />
-                {/* Component ô nhập và gửi tin nhắn (kèm tính năng gửi hình ảnh) */}
+                {/* Component ô nhập và gửi tin nhắn (kèm tính năng gửi hình ảnh và sự kiện đang gõ chữ) */}
                 <MessageInput
                     selectedUser={selectedUser}
                     message={message}
@@ -421,4 +431,4 @@ const ChatApp = () => {
     )
 }
 
-export default ChatApp;
+export default ChatApp; // Xuất component ra để sử dụng trong ứng dụng Next.js
