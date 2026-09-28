@@ -7,6 +7,7 @@ import { Suspense } from "react";
 const VerifyPage = () => {
 
     return (
+        // Bọc component con trong Suspense, hiển thị <Loading /> trong lúc chờ
         <Suspense fallback={<Loading />}>
             <VerifyOtp />
         </Suspense>
@@ -14,3 +15,4 @@ const VerifyPage = () => {
 };
 
 export default VerifyPage;
+

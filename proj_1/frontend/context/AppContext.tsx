@@ -94,16 +94,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
     };
 
+    // Hàm bất đồng bộ thực hiện việc đăng xuất người dùng khỏi hệ thống.
     async function logoutUser() {
-        Cookies.remove("token");
-        setUser(null);
-        setIsAuth(false);
-        toast.success("User Logged Out");
+        Cookies.remove("token"); // Xóa token ra khỏi cookie.
+        setUser(null); // Xóa thông tin user khỏi state.
+        setIsAuth(false); // Đặt trạng thái đã đăng nhập thành false.
+        toast.success("User Logged Out"); // Hiển thị thông báo thành công.
     };
 
+    // Khai báo state lưu trữ danh sách toàn bộ người dùng trong ứng dụng.
     const [users, setUsers] = useState<User[] | null>(null)
+
+    // Hàm bất đồng bộ gọi API để lấy danh sách tất cả người dùng từ service quản lý user.
     async function fetchUsers() {
-        const token = Cookies.get("token");
+        const token = Cookies.get("token"); // Lấy token xác thực hiện tại từ cookie.
 
         try {
             const { data } = await axios.get(`${user_service}/api/v1/user/all`, {
@@ -117,7 +121,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         }
     }
 
+    // Khai báo state lưu trữ danh sách các cuộc trò chuyện (chat rooms) của người dùng.
     const [chats, setChats] = useState<Chats[] | null>(null);
+
+    // Hàm bất đồng bộ gọi API để lấy toàn bộ danh sách các cuộc trò chuyện hiện có.
     async function fetchChats() {
         const token = Cookies.get("token");
         try {
